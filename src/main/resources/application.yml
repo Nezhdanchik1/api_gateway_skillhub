@@ -1,0 +1,72 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: ApiGateway
+
+  cloud:
+    gateway:
+      server:
+        webflux:
+          # Global CORS configuration
+          globalcors:
+            cors-configurations:
+              '[/**]':
+                allowedOriginPatterns:
+                  - "http://localhost:3000"
+                  - "http://localhost:5173"
+                  - "http://localhost:5174"
+                allowedMethods:
+                  - GET
+                  - POST
+                  - PUT
+                  - DELETE
+                  - PATCH
+                  - OPTIONS
+                allowedHeaders:
+                  - "*"
+                exposedHeaders:
+                  - "Authorization"
+                allowCredentials: true
+                maxAge: 3600
+
+          routes:
+            # ─── UserService (port 8081) ────────────────────────────────────────
+            - id: user-auth
+              uri: http://localhost:8081
+              predicates:
+                - Path=/api/auth/**
+
+            - id: user-presence-ws
+              uri: ws://localhost:8081
+              predicates:
+                - Path=/api/presence/ws
+
+            # ─── RoomService (port 8082) ────────────────────────────────────────
+            - id: room-service
+              uri: http://localhost:8082
+              predicates:
+                - Path=/api/rooms/**, /api/directions/**
+
+            # ─── ContentService (port 8083) ─────────────────────────────────────
+            - id: content-service
+              uri: http://localhost:8083
+              predicates:
+                - Path=/api/articles/**, /api/posts/**, /api/comments/**, /api/wiki/**, /api/tags/**
+
+            # ─── InteractionService (port 8084) ─────────────────────────────────
+            - id: interaction-service
+              uri: http://localhost:8084
+              predicates:
+                - Path=/api/interactions/**
+
+# JWT configuration (shared secret with UserService)
+jwt:
+  secret: "z6B9v2P5m8X1k4R7j0N3f6G9w2Q5s8D1"
+
+# Logging
+logging:
+  level:
+    org.springframework.cloud.gateway: DEBUG
+    org.example.apigateway: DEBUG
