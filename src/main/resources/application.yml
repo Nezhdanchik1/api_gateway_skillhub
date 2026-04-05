@@ -1,7 +1,9 @@
 server:
-  port: 8080
+  port: ${API_GATEWAY_PORT:8080}
 
 spring:
+  config:
+    import: "optional:file:.env[.properties]"
   application:
     name: ApiGateway
 
@@ -63,7 +65,7 @@ spring:
 
 # JWT configuration (shared secret with UserService)
 jwt:
-  secret: "z6B9v2P5m8X1k4R7j0N3f6G9w2Q5s8D1"
+  secret: ${JWT_SECRET}
 
 # Logging
 logging:
