@@ -35,10 +35,10 @@ spring:
 
           routes:
             # ─── UserService (port 8081) ────────────────────────────────────────
-            - id: user-auth
+            - id: user-service
               uri: http://localhost:8081
               predicates:
-                - Path=/api/auth/**
+                - Path=/api/auth/**, /api/users/**, /api/admin/**
 
             - id: user-presence-ws
               uri: ws://localhost:8081
