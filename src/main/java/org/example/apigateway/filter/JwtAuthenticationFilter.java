@@ -1,22 +1,30 @@
 package org.example.apigateway.filter;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.core.Ordered;
+import org.springframework.core.io.buffer.DataBuffer;
+import org.springframework.data.redis.core.ReactiveStringRedisTemplate;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.server.reactive.ServerHttpRequest;
+import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
+import java.util.Map;
 
 /**
  * Global JWT authentication filter.
@@ -38,8 +46,19 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
     @Value("${jwt.secret}")
     private String jwtSecret;
 
+    @Autowired
+    private ReactiveStringRedisTemplate redisTemplate;
+
+    @Autowired
+    private ObjectMapper objectMapper;
+
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
+        // Explicitly allow preflight OPTIONS requests without JWT validation
+        if (org.springframework.http.HttpMethod.OPTIONS.equals(exchange.getRequest().getMethod())) {
+            return chain.filter(exchange);
+        }
+
         String authHeader = exchange.getRequest().getHeaders().getFirst("Authorization");
 
         // No token provided — pass through, downstream service decides if auth is required
@@ -87,12 +106,44 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
 
             log.debug("JWT validated for user_id={}, role={}", userIdRaw, role);
 
+            // --- REDIS BAN CHECK ---
+            if (userIdRaw != null) {
+                String redisKey = "ban:user:" + userIdRaw.toString();
+                return redisTemplate.opsForValue().get(redisKey)
+                        .flatMap(blockedUntil -> {
+                            log.warn("Blocked user {} attempted access. Blocked until: {}", userIdRaw, blockedUntil);
+                            return createBannedResponse(exchange, blockedUntil);
+                        })
+                        .switchIfEmpty(chain.filter(exchange.mutate().request(requestBuilder.build()).build()));
+            }
+
             return chain.filter(exchange.mutate().request(requestBuilder.build()).build());
 
         } catch (JwtException e) {
             log.warn("Invalid JWT token: {}", e.getMessage());
             exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
             return exchange.getResponse().setComplete();
+        }
+    }
+
+    private Mono<Void> createBannedResponse(ServerWebExchange exchange, String blockedUntil) {
+        ServerHttpResponse response = exchange.getResponse();
+        response.setStatusCode(HttpStatus.FORBIDDEN);
+        response.getHeaders().setContentType(MediaType.APPLICATION_JSON);
+
+        Map<String, Object> errorDetails = Map.of(
+                "status", "BANNED",
+                "message", "Ваш аккаунт временно заблокирован",
+                "blockedUntil", blockedUntil
+        );
+
+        try {
+            byte[] bytes = objectMapper.writeValueAsBytes(errorDetails);
+            DataBuffer buffer = response.bufferFactory().wrap(bytes);
+            return response.writeWith(Mono.just(buffer));
+        } catch (JsonProcessingException e) {
+            log.error("Error writing ban response", e);
+            return response.setComplete();
         }
     }
 

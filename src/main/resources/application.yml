@@ -7,61 +7,81 @@ spring:
   application:
     name: ApiGateway
 
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+
   cloud:
     gateway:
-      server:
-        webflux:
-          # Global CORS configuration
-          globalcors:
-            cors-configurations:
-              '[/**]':
-                allowedOriginPatterns:
-                  - "http://localhost:3000"
-                  - "http://localhost:5173"
-                  - "http://localhost:5174"
-                allowedMethods:
-                  - GET
-                  - POST
-                  - PUT
-                  - DELETE
-                  - PATCH
-                  - OPTIONS
-                allowedHeaders:
-                  - "*"
-                exposedHeaders:
-                  - "Authorization"
-                allowCredentials: true
-                maxAge: 3600
+      # Global CORS configuration
+      globalcors:
+        add-to-simple-url-handler-mapping: true
+        cors-configurations:
+          '[/**]':
+            allowedOrigins:
+              - "http://localhost:3000"
+              - "http://localhost:5173"
+              - "http://localhost:5174"
+            allowedMethods:
+              - "*"
+            allowedHeaders:
+              - "*"
+            exposedHeaders:
+              - "Authorization"
+            allowCredentials: true
+            maxAge: 3600
 
-          routes:
-            # ─── UserService (port 8081) ────────────────────────────────────────
-            - id: user-service
-              uri: http://localhost:8081
-              predicates:
-                - Path=/api/users/**, /api/auth/**, /api/admin/**
+      routes:
+        # ─── UserService (port 8081) ────────────────────────────────────────
+        - id: user-service
+          uri: ${USER_SERVICE_URL:http://localhost:8081}
+          predicates:
+            - Path=/api/users/**, /api/auth/**, /api/admin/**
 
-            - id: user-presence-ws
-              uri: ws://localhost:8081
-              predicates:
-                - Path=/api/presence/ws
+        - id: user-presence-ws
+          uri: ${USER_SERVICE_WS_URL:ws://localhost:8081}
+          predicates:
+            - Path=/api/presence/ws
 
-            # ─── RoomService (port 8082) ────────────────────────────────────────
-            - id: room-service
-              uri: http://localhost:8082
-              predicates:
-                - Path=/api/rooms/**, /api/directions/**
+        # ─── RoomService (port 8082) ────────────────────────────────────────
+        - id: room-service
+          uri: ${ROOM_SERVICE_URL:http://localhost:8082}
+          predicates:
+            - Path=/api/rooms/**, /api/directions/**
 
-            # ─── ContentService (port 8083) ─────────────────────────────────────
-            - id: content-service
-              uri: http://localhost:8083
-              predicates:
-                - Path=/api/articles/**, /api/posts/**, /api/comments/**, /api/wiki/**, /api/tags/**
+        # ─── ContentService (port 8083) ─────────────────────────────────────
+        - id: content-service
+          uri: ${CONTENT_SERVICE_URL:http://localhost:8083}
+          predicates:
+            - Path=/api/articles/**, /api/posts/**, /api/comments/**, /api/wiki/**, /api/tags/**
 
-            # ─── InteractionService (port 8084) ─────────────────────────────────
-            - id: interaction-service
-              uri: http://localhost:8084
-              predicates:
-                - Path=/api/interactions/**
+        # ─── InteractionService (port 8084) ─────────────────────────────────
+        - id: interaction-service
+          uri: ${INTERACTION_SERVICE_URL:http://localhost:8084}
+          predicates:
+            - Path=/api/interactions/**
+
+        # ─── ChatService (port 8085) ────────────────────────────────────────
+        - id: chat-ws
+          uri: ${CHAT_SERVICE_WS_URL:ws://localhost:8085}
+          predicates:
+            - Path=/api/chat/ws
+
+        - id: chat-service
+          uri: ${CHAT_SERVICE_URL:http://localhost:8085}
+          predicates:
+            - Path=/api/chat/**
+
+        # ─── MinIO Storage Proxy ───────────────────────────────────────────
+        - id: minio-images
+          uri: ${MINIO_URL:http://127.0.0.1:9000}
+          predicates:
+            - Path=/image/**
+        - id: minio-avatars
+          uri: ${MINIO_URL:http://127.0.0.1:9000}
+          predicates:
+            - Path=/avatar/**
 
 # JWT configuration (shared secret with UserService)
 jwt:
