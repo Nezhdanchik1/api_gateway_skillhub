@@ -73,6 +73,11 @@ spring:
           predicates:
             - Path=/api/chat/**
 
+        # ─── AchievementService (port 8086) ─────────────────────────────────
+        - id: achievement-service
+          uri: ${ACHIEVEMENT_SERVICE_URL:http://localhost:8086}
+          predicates:
+            - Path=/api/achievements/**
         # ─── MinIO Storage Proxy ───────────────────────────────────────────
         - id: minio-images
           uri: ${MINIO_URL:http://127.0.0.1:9000}

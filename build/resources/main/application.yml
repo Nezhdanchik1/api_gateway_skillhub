@@ -68,6 +68,12 @@ spring:
           predicates:
             - Path=/api/chat/ws
 
+        # ─── AchievementService (port 8086) ─────────────────────────────────
+        - id: achievement-service
+          uri: ${ACHIEVEMENT_SERVICE_URL:http://localhost:8086}
+          predicates:
+            - Path=/api/achievements/**
+
         - id: chat-service
           uri: ${CHAT_SERVICE_URL:http://localhost:8085}
           predicates:
