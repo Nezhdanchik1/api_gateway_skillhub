@@ -68,18 +68,24 @@ spring:
           predicates:
             - Path=/api/chat/ws
 
+        - id: chat-service
+          uri: ${CHAT_SERVICE_URL:http://localhost:8085}
+          predicates:
+            - Path=/api/chat/**
+
         # ─── AchievementService (port 8086) ─────────────────────────────────
         - id: achievement-service
           uri: ${ACHIEVEMENT_SERVICE_URL:http://localhost:8086}
           predicates:
             - Path=/api/achievements/**
 
-        - id: chat-service
-          uri: ${CHAT_SERVICE_URL:http://localhost:8085}
+        # ─── AiService (port 8087) ──────────────────────────────────────────
+        - id: ai-service
+          uri: ${AI_SERVICE_URL:http://localhost:8087}
           predicates:
-            - Path=/api/chat/**
+            - Path=/api/ai/**
 
-        # ─── MinIO Storage Proxy ───────────────────────────────────────────
+      # ─── MinIO Storage Proxy ───────────────────────────────────────────
         - id: minio-images
           uri: ${MINIO_URL:http://127.0.0.1:9000}
           predicates:
