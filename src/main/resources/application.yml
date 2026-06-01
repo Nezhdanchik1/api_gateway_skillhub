@@ -97,8 +97,7 @@ spring:
 
 # JWT configuration (shared secret with UserService)
 jwt:
-#  secret: ${JWT_SECRET}
-  secret: z6B9v2P5m8X1k4R7j0N3f6G9w2Q5s8D1
+  secret: ${JWT_SECRET}
 # Logging
 logging:
   level:
