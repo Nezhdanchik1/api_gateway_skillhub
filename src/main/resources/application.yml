@@ -48,7 +48,7 @@ spring:
         - id: room-service
           uri: ${ROOM_SERVICE_URL:http://localhost:8082}
           predicates:
-            - Path=/api/rooms/**, /api/directions/**
+            - Path=/api/rooms/**, /api/directions/**, /api/education/**
 
         # ─── ContentService (port 8083) ─────────────────────────────────────
         - id: content-service
@@ -97,7 +97,7 @@ spring:
 
 # JWT configuration (shared secret with UserService)
 jwt:
-  secret: ${JWT_SECRET}
+  secret: ${JWT_SECRET:z6B9v2P5m8X1k4R7j0N3f6G9w2Q5s8D1}
 # Logging
 logging:
   level:

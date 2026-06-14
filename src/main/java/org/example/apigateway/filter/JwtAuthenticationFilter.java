@@ -46,7 +46,7 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
     @Value("${jwt.secret}")
     private String jwtSecret;
 
-    @Autowired
+    @Autowired(required = false)
     private ReactiveStringRedisTemplate redisTemplate;
 
     @Autowired
@@ -91,8 +91,16 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
                 requestBuilder.header("X-User-Id", userIdRaw.toString());
             }
             if (role != null) {
-                // Spring Security's hasRole('USER') expects authority "ROLE_USER"
-                requestBuilder.header("X-User-Roles", "ROLE_" + role);
+                String upperRole = role.toUpperCase();
+                String rolesHeaderValue;
+                if ("ADMIN".equals(upperRole)) {
+                    rolesHeaderValue = "ROLE_ADMIN,ROLE_MODERATOR,ROLE_USER";
+                } else if ("MODERATOR".equals(upperRole)) {
+                    rolesHeaderValue = "ROLE_MODERATOR,ROLE_USER";
+                } else {
+                    rolesHeaderValue = "ROLE_" + upperRole;
+                }
+                requestBuilder.header("X-User-Roles", rolesHeaderValue);
             }
             if (email != null) {
                 requestBuilder.header("X-User-Email", email);
@@ -107,7 +115,7 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
             log.debug("JWT validated for user_id={}, role={}", userIdRaw, role);
 
             // --- REDIS BAN CHECK ---
-            if (userIdRaw != null) {
+            if (userIdRaw != null && redisTemplate != null) {
                 String redisKey = "ban:user:" + userIdRaw.toString();
                 return redisTemplate.opsForValue().get(redisKey)
                         .flatMap(blockedUntil -> {
