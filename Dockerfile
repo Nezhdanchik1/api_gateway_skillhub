@@ -1,11 +1,11 @@
 # Build stage
-FROM gradle:8.7-jdk17 AS build
+FROM gradle:jdk17 AS build
 WORKDIR /app
 COPY . .
 RUN gradle build -x test
 
 # Run stage
-FROM openjdk:17-slim
+FROM eclipse-temurin:17-jre-alpine
 WORKDIR /app
 COPY --from=build /app/build/libs/*.jar app.jar
 EXPOSE 8080
